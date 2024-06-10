@@ -10,16 +10,38 @@ users = []
 
 
 class User:
+    """
+    Represents a user with a name, surname, number of posts, and location.
+
+    Attributes:
+        name (str): The user's first name.
+        surname (str): The user's surname.
+        posts (str): The number of posts published by the user.
+        location (str): The user's location.
+        coords (list): The geographical coordinates (latitude and longitude) of the user's location.
+        marker (Marker): A marker on the map representing the user's location.
+    """
+
     def __init__(self, name, surname, posts, location):
-        self.name = name
-        self.surname = surname
-        self.posts = posts
-        self.location = location
-        self.coords = User.get_coordinates(self)
-        self.marker = map_widget.set_marker(self.coords[0], self.coords[1],
-                                            text=f"{self.name}")
+        self.name: str = name
+        self.surname: str = surname
+        self.posts: str = posts
+        self.location: str = location
+        self.coords: list = User.get_coordinates(self)
+
+        self.marker = map_widget.set_marker(
+            self.coords[0],
+            self.coords[1],
+            text=f"{self.name}"
+        )
 
     def get_coordinates(self) -> list:
+        """
+        Retrieves the geographical coordinates for the user's location.
+
+        Returns:
+            list: A list containing the latitude and longitude of the user's location.
+        """
         url: str = f'https://pl.wikipedia.org/wiki/{self.location}'
         response = requests.get(url)
         response_html = BeautifulSoup(response.text, 'html.parser')
@@ -30,12 +52,18 @@ class User:
 
 
 def show_users() -> None:
+    """
+    Displays the list of users in the Listbox widget.
+    """
     listbox_lista_obiektow.delete(0, END)
     for idx, user in enumerate(users):
         listbox_lista_obiektow.insert(idx, f'{user.name} {user.surname} {user.posts} {user.location}')
 
 
 def add_user() -> None:
+    """
+    Adds a new user to the users list based on input from Entry widgets.
+    """
     name = entry_imie.get()
     surname = entry_nazwisko.get()
     posts = entry_liczba_postow.get()
@@ -53,6 +81,9 @@ def add_user() -> None:
 
 
 def remove_user() -> None:
+    """
+    Removes the selected user from the users list and deletes their marker from the map.
+    """
     i = listbox_lista_obiektow.index(ACTIVE)
     users[i].marker.delete()
     users.pop(i)
@@ -60,6 +91,9 @@ def remove_user() -> None:
 
 
 def show_user_details() -> None:
+    """
+    Displays the details of the selected user and sets the map position to their coordinates.
+    """
     i = listbox_lista_obiektow.index(ACTIVE)
     imie = users[i].name
     label_imie_szczegoly_obiektu_wartosc.config(text=imie)
@@ -74,6 +108,12 @@ def show_user_details() -> None:
 
 
 def edit_user_data() -> None:
+    """
+    Updates the user data and marker on the map with the values from the Entry widgets.
+
+    Args:
+        i (int): The index of the user to be updated in the users list.
+    """
     i = listbox_lista_obiektow.index(ACTIVE)
     entry_imie.insert(0, users[i].name)
     entry_nazwisko.insert(0, users[i].surname)
