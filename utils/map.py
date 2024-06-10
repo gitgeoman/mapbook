@@ -34,8 +34,8 @@ def single_map(user_location: str) -> None:
     response = requests.get(url)
     response_html = BeautifulSoup(response.text, 'html.parser')
 
-    latitude: str = response_html.select('.latitude')[1].text.replace(",", ".")
-    longitude: str = response_html.select('.longitude')[1].text.replace(",", ".")
+    latitude: float = float(response_html.select('.latitude')[1].text.replace(",", "."))
+    longitude: float = float(response_html.select('.longitude')[1].text.replace(",", "."))
 
     my_map = folium.Map(location=[latitude, longitude], zoom_start=11)
     folium.Marker(location=[latitude, longitude], popup=f"{user_location}").add_to(my_map)

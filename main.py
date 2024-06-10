@@ -16,22 +16,15 @@ def main() -> None:
         print("7. Generate full map")
 
         menu_option = input("Choose an option:")
-        if menu_option == "0":
-            break
-        if menu_option == "1":
-            read_user(users)
-        if menu_option == "2":
-            add_user(users)
-        if menu_option == "3":
-            search_user(users)
-        if menu_option == "4":
-            remove_user(users)
-        if menu_option == "5":
-            update_user(users)
-        if menu_option == "6":
-            single_map(search_user(users)['location'])
-        if menu_option == "7":
-            full_map(users)
+        if menu_option == "0": break
+        if menu_option == "1": read_user(users)
+        if menu_option == "2": add_user(users)
+        if menu_option == "3": search_user(users)
+        if menu_option == "4": remove_user(users)
+        if menu_option == "5": update_user(users)
+        if menu_option == "6": single_map(search_user(users)['location'])
+        if menu_option == "7": full_map(users)
+
 
 if __name__ == '__main__':
     main()
