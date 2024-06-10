@@ -14,29 +14,39 @@ db_params = ps.connect(
 )
 
 users = []
+markers = []  # List to keep track of markers
 
 
 class User:
-    def __init__(self, name, surname, posts, location):
+    def __init__(self, id, name, surname, posts, location, coords):
+        self.id = id
         self.name = name
         self.surname = surname
         self.posts = posts
         self.location = location
-        self.coords = self.get_coordinates()
+        self.coords = coords
         self.marker = map_widget.set_marker(
-            self.coords[0],
-            self.coords[1],
+            float(self.coords[0]),
+            float(self.coords[1]),
             text=f"{self.name}"
         )
+        markers.append(self.marker)  # Track the marker
 
-    def get_coordinates(self):
-        url = f'https://pl.wikipedia.org/wiki/{self.location}'
-        response = requests.get(url)
-        response_html = BeautifulSoup(response.text, 'html.parser')
-        return [
-            float(response_html.select('.latitude')[1].text.replace(",", ".")),
-            float(response_html.select('.longitude')[1].text.replace(",", "."))
-        ]
+
+def get_coordinates(location) -> list:
+    url = f'https://pl.wikipedia.org/wiki/{location}'
+    response = requests.get(url)
+    response_html = BeautifulSoup(response.text, 'html.parser')
+    return [
+        float(response_html.select('.latitude')[1].text.replace(",", ".")),
+        float(response_html.select('.longitude')[1].text.replace(",", "."))
+    ]
+
+
+def clear_markers():
+    for marker in markers:
+        marker.delete()
+    markers.clear()
 
 
 def show_users():
@@ -46,10 +56,12 @@ def show_users():
     users_db = cursor.fetchall()
     cursor.close()
 
+    clear_markers()  # Clear existing markers before adding new ones
+
     users.clear()
     listbox_lista_obiektow.delete(0, END)
     for idx, user in enumerate(users_db):
-        user_obj = User(user[1], user[2], user[3], user[4])
+        user_obj = User(user[0], user[1], user[2], user[3], user[4], [user[5][6:-1].split()[1], user[5][6:-1].split()[0]])
         users.append(user_obj)
         listbox_lista_obiektow.insert(idx, f'{user[1]} {user[2]} {user[3]} {user[4]}')
 
@@ -59,17 +71,21 @@ def add_user():
     surname = entry_nazwisko.get()
     posts = entry_liczba_postow.get()
     location = entry_lokalizacja.get()
-    user = User(name, surname, posts, location)
-    users.append(user)
+    coords = get_coordinates(location)
 
     cursor = db_params.cursor()
     sql_insert_user = f"""
     INSERT INTO public.users (name, surname, posts, location, coords) 
-    VALUES ('{name}', '{surname}', '{posts}', '{location}', 'POINT({user.coords[1]} {user.coords[0]})')
+    VALUES (%s, %s, %s, %s, ST_GeomFromText(%s))
+    RETURNING id
     """
-    cursor.execute(sql_insert_user)
+    cursor.execute(sql_insert_user, (name, surname, posts, location, f'POINT({coords[1]} {coords[0]})'))
+    user_id = cursor.fetchone()[0]
     db_params.commit()
     cursor.close()
+
+    user = User(id=user_id, name=name, surname=surname, posts=posts, location=location, coords=coords)
+    users.append(user)
 
     show_users()
 
@@ -85,12 +101,13 @@ def remove_user():
     user = users[i]
 
     cursor = db_params.cursor()
-    sql_delete_user = f"DELETE FROM public.users WHERE name = '{user.name}' AND surname = '{user.surname}'"
-    cursor.execute(sql_delete_user)
+    sql_delete_user = f"DELETE FROM public.users WHERE id = %s"
+    cursor.execute(sql_delete_user, (user.id,))
     db_params.commit()
     cursor.close()
 
     user.marker.delete()
+    markers.remove(user.marker)  # Remove the marker from the list
     users.pop(i)
     show_users()
 
@@ -102,7 +119,7 @@ def show_user_details():
     label_nazwisko_szczegoly_obiektu_wartosc.config(text=user.surname)
     label_liczba_postow_szczegoly_obiektu_wartosc.config(text=user.posts)
     label_lokalizacja_szczegoly_obiektu_wartosc.config(text=user.location)
-    map_widget.set_position(user.coords[0], user.coords[1])
+    map_widget.set_position(float(user.coords[0]), float(user.coords[1]))
     map_widget.set_zoom(12)
 
 
@@ -123,17 +140,20 @@ def update_user(i):
     user.surname = entry_nazwisko.get()
     user.posts = entry_liczba_postow.get()
     user.location = entry_lokalizacja.get()
-    user.coords = user.get_coordinates()
+    user.coords = get_coordinates(entry_lokalizacja.get())
     user.marker.delete()
+    markers.remove(user.marker)  # Remove the old marker from the list
+
     user.marker = map_widget.set_marker(user.coords[0], user.coords[1], text=f"{user.name}")
+    markers.append(user.marker)  # Add the new marker to the list
 
     cursor = db_params.cursor()
     sql_update_user = f"""
     UPDATE public.users 
-    SET name = '{user.name}', surname = '{user.surname}', posts = '{user.posts}', location = '{user.location}', coords = 'POINT({user.coords[1]} {user.coords[0]})' 
-    WHERE name = '{user.name}' AND surname = '{user.surname}'
+    SET name = %s, surname = %s, posts = %s, location = %s, coords = ST_GeomFromText(%s)
+    WHERE id = %s
     """
-    cursor.execute(sql_update_user)
+    cursor.execute(sql_update_user, (user.name, user.surname, user.posts, user.location, f'POINT({user.coords[1]} {user.coords[0]})', user.id))
     db_params.commit()
     cursor.close()
 
@@ -144,8 +164,6 @@ def update_user(i):
     entry_liczba_postow.delete(0, END)
     entry_lokalizacja.delete(0, END)
     entry_imie.focus()
-
-
 # GUI
 root = Tk()
 root.title("MapApp")
