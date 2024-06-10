@@ -1,6 +1,6 @@
 from model.data import users
-from utils.controller.crud import read_user, add_user, search_user, remove_user, update_user
-from utils.controller.map import single_map, full_map
+from utils.crud import read_user, add_user, search_user, remove_user, update_user
+from utils.map import single_map, full_map
 
 
 def main() -> None:
