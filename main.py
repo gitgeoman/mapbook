@@ -15,11 +15,11 @@ class User:
         self.surname = surname
         self.posts = posts
         self.location = location
-        self.wspolrzedne = User.wspolrzedne(self)
-        self.marker = map_widget.set_marker(self.wspolrzedne[0], self.wspolrzedne[1],
+        self.coords = User.get_coordinates(self)
+        self.marker = map_widget.set_marker(self.coords[0], self.coords[1],
                                             text=f"{self.name}")
 
-    def wspolrzedne(self) -> list:
+    def get_coordinates(self) -> list:
         url: str = f'https://pl.wikipedia.org/wiki/{self.location}'
         response = requests.get(url)
         response_html = BeautifulSoup(response.text, 'html.parser')
@@ -29,20 +29,20 @@ class User:
         ]
 
 
-def lista_uzytknikow():
+def show_users() -> None:
     listbox_lista_obiektow.delete(0, END)
     for idx, user in enumerate(users):
         listbox_lista_obiektow.insert(idx, f'{user.name} {user.surname} {user.posts} {user.location}')
 
 
-def dodaj_uzytkownika():
-    imie = entry_imie.get()
-    nazwisko = entry_nazwisko.get()
-    posty = entry_liczba_postow.get()
-    lokalizacja = entry_lokalizacja.get()
-    users.append(User(imie, nazwisko, posty, lokalizacja))
+def add_user() -> None:
+    name = entry_imie.get()
+    surname = entry_nazwisko.get()
+    posts = entry_liczba_postow.get()
+    location = entry_lokalizacja.get()
+    users.append(User(name, surname, posts, location))
 
-    lista_uzytknikow()
+    show_users()
 
     entry_imie.delete(0, END)
     entry_nazwisko.delete(0, END)
@@ -52,14 +52,14 @@ def dodaj_uzytkownika():
     entry_imie.focus()
 
 
-def usun_uzytkownika():
+def remove_user() -> None:
     i = listbox_lista_obiektow.index(ACTIVE)
     users[i].marker.delete()
     users.pop(i)
-    lista_uzytknikow()
+    show_users()
 
 
-def pokaz_szczegoly_uzytkownika():
+def show_user_details() -> None:
     i = listbox_lista_obiektow.index(ACTIVE)
     imie = users[i].name
     label_imie_szczegoly_obiektu_wartosc.config(text=imie)
@@ -73,27 +73,27 @@ def pokaz_szczegoly_uzytkownika():
     map_widget.set_zoom(12)
 
 
-def edytuj_uzytkownika():
+def edit_user_data() -> None:
     i = listbox_lista_obiektow.index(ACTIVE)
     entry_imie.insert(0, users[i].name)
     entry_nazwisko.insert(0, users[i].surname)
     entry_liczba_postow.insert(0, users[i].posts)
     entry_lokalizacja.insert(0, users[i].location)
 
-    button_dodaj_uzytkownika.config(text="Zapisz zmiany", command=lambda: aktualizuj_uzytkownika(i))
+    button_dodaj_uzytkownika.config(text="Zapisz zmiany", command=lambda: update_user(i))
 
 
-def aktualizuj_uzytkownika(i):
+def update_user(i) -> None:
     users[i].name = entry_imie.get()
     users[i].surname = entry_nazwisko.get()
     users[i].posts = entry_liczba_postow.get()
     users[i].location = entry_lokalizacja.get()
-    users[i].wspolrzedne = User.wspolrzedne(users[i])
+    users[i].wspolrzedne = User.get_coordinates(users[i])
     users[i].marker.delete()
     users[i].marker = map_widget.set_marker(users[i].wspolrzedne[0], users[i].wspolrzedne[1],
                                             text=f"{users[i].name}")
-    lista_uzytknikow()
-    button_dodaj_uzytkownika.config(text="Dodaj użytkownika", command=dodaj_uzytkownika)
+    show_users()
+    button_dodaj_uzytkownika.config(text="Dodaj użytkownika", command=add_user)
     entry_imie.delete(0, END)
     entry_nazwisko.delete(0, END)
     entry_liczba_postow.delete(0, END)
@@ -103,7 +103,7 @@ def aktualizuj_uzytkownika(i):
 
 # GUI
 root = Tk()
-root.title("MapBook")
+root.title("MapApp")
 root.geometry("1024x760")
 
 # ramki do porządkowania struktury
@@ -119,9 +119,9 @@ ramka_szczegoly_obiektu.grid(column=0, row=1, columnspan=2, padx=50, pady=20)
 
 label_lista_obiektow = Label(ramka_lista_obiektow, text="Lista obiektów: ")
 listbox_lista_obiektow = Listbox(ramka_lista_obiektow, width=50)
-button_pokaz_szczegoly = Button(ramka_lista_obiektow, text="Pokaż szczegóły", command=pokaz_szczegoly_uzytkownika)
-button_usun_obiekkt = Button(ramka_lista_obiektow, text="Usuń obiekt", command=usun_uzytkownika)
-button_edytuj_obiekt = Button(ramka_lista_obiektow, text="Edytuj obiekt", command=edytuj_uzytkownika)
+button_pokaz_szczegoly = Button(ramka_lista_obiektow, text="Pokaż szczegóły", command=show_user_details)
+button_usun_obiekkt = Button(ramka_lista_obiektow, text="Usuń obiekt", command=remove_user)
+button_edytuj_obiekt = Button(ramka_lista_obiektow, text="Edytuj obiekt", command=edit_user_data)
 
 label_lista_obiektow.grid(row=0, column=0, columnspan=3)
 listbox_lista_obiektow.grid(row=1, column=0, columnspan=3)
@@ -153,7 +153,7 @@ entry_nazwisko.grid(row=2, column=1)
 entry_liczba_postow.grid(row=3, column=1)
 entry_lokalizacja.grid(row=4, column=1)
 
-button_dodaj_uzytkownika = Button(ramka_formularz, text="Dodaj użytkownika", command=dodaj_uzytkownika)
+button_dodaj_uzytkownika = Button(ramka_formularz, text="Dodaj użytkownika", command=add_user)
 button_dodaj_uzytkownika.grid(row=5, column=1, columnspan=2)
 
 # szczegóły obiektu
@@ -179,6 +179,7 @@ label_liczba_postow_szczegoly_obiektu_wartosc.grid(row=1, column=5)
 label_lokalizacja_szczegoly_obiektu.grid(row=1, column=6)
 label_lokalizacja_szczegoly_obiektu_wartosc.grid(row=1, column=7)
 
+# map widget
 map_widget = tkintermapview.TkinterMapView(ramka_szczegoly_obiektu, width=900, height=400)
 map_widget.set_position(52.2, 21.0)
 map_widget.set_zoom(6)
