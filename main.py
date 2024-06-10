@@ -18,7 +18,31 @@ markers = []  # List to keep track of markers
 
 
 class User:
+    """
+      A class to represent a User.
+
+      Attributes:
+          id (int): The ID of the user.
+          name (str): The first name of the user.
+          surname (str): The surname of the user.
+          posts (int): The number of posts the user has made.
+          location (str): The location of the user.
+          coords (list): The coordinates of the user's location.
+          marker: The marker object for the user on the map.
+      """
+
     def __init__(self, id, name, surname, posts, location, coords):
+        """
+              Constructs all the necessary attributes for the User object.
+
+              Args:
+                  id (int): The ID of the user.
+                  name (str): The first name of the user.
+                  surname (str): The surname of the user.
+                  posts (int): The number of posts the user has made.
+                  location (str): The location of the user.
+                  coords (list): The coordinates of the user's location.
+              """
         self.id = id
         self.name = name
         self.surname = surname
@@ -34,6 +58,15 @@ class User:
 
 
 def get_coordinates(location) -> list:
+    """
+        Retrieves the coordinates of a given location from Wikipedia.
+
+        Args:
+            location (str): The name of the location.
+
+        Returns:
+            list: A list containing the latitude and longitude of the location.
+        """
     url = f'https://pl.wikipedia.org/wiki/{location}'
     response = requests.get(url)
     response_html = BeautifulSoup(response.text, 'html.parser')
@@ -43,13 +76,20 @@ def get_coordinates(location) -> list:
     ]
 
 
-def clear_markers():
+def clear_markers() -> None:
+    """
+       Clears all markers from the map.
+    """
     for marker in markers:
         marker.delete()
     markers.clear()
 
 
-def show_users():
+def show_users() -> None:
+    """
+        Fetches and displays all users from the database.
+        Clears existing markers and user list before displaying new data.
+    """
     cursor = db_params.cursor()
     sql_show_users = "SELECT id, name, surname, posts, location, ST_AsText(coords) FROM public.users"
     cursor.execute(sql_show_users)
@@ -61,12 +101,16 @@ def show_users():
     users.clear()
     listbox_lista_obiektow.delete(0, END)
     for idx, user in enumerate(users_db):
-        user_obj = User(user[0], user[1], user[2], user[3], user[4], [user[5][6:-1].split()[1], user[5][6:-1].split()[0]])
+        user_obj = User(user[0], user[1], user[2], user[3], user[4],
+                        [user[5][6:-1].split()[1], user[5][6:-1].split()[0]])
         users.append(user_obj)
         listbox_lista_obiektow.insert(idx, f'{user[1]} {user[2]} {user[3]} {user[4]}')
 
 
-def add_user():
+def add_user() -> None:
+    """
+        Adds a new user to the database and updates the UI.
+    """
     name = entry_imie.get()
     surname = entry_nazwisko.get()
     posts = entry_liczba_postow.get()
@@ -96,7 +140,10 @@ def add_user():
     entry_imie.focus()
 
 
-def remove_user():
+def remove_user() -> None:
+    """
+    Removes the selected user from the database and updates the UI.
+    """
     i = listbox_lista_obiektow.index(ACTIVE)
     user = users[i]
 
@@ -112,7 +159,10 @@ def remove_user():
     show_users()
 
 
-def show_user_details():
+def show_user_details() -> None:
+    """
+     Displays details of the selected user and centers the map on their location.
+     """
     i = listbox_lista_obiektow.index(ACTIVE)
     user = users[i]
     label_imie_szczegoly_obiektu_wartosc.config(text=user.name)
@@ -123,7 +173,11 @@ def show_user_details():
     map_widget.set_zoom(12)
 
 
-def edit_user_data():
+def edit_user_data() -> None:
+    """
+    Populates the form with the selected user's data for editing.
+    Changes the "Add User" button to "Save Changes".
+    """
     i = listbox_lista_obiektow.index(ACTIVE)
     user = users[i]
     entry_imie.insert(0, user.name)
@@ -134,7 +188,10 @@ def edit_user_data():
     button_dodaj_uzytkownika.config(text="Zapisz zmiany", command=lambda: update_user(i))
 
 
-def update_user(i):
+def update_user(i) -> None:
+    """
+    Updates the user's data in the database and updates the UI.
+    """
     user = users[i]
     user.name = entry_imie.get()
     user.surname = entry_nazwisko.get()
@@ -153,7 +210,8 @@ def update_user(i):
     SET name = %s, surname = %s, posts = %s, location = %s, coords = ST_GeomFromText(%s)
     WHERE id = %s
     """
-    cursor.execute(sql_update_user, (user.name, user.surname, user.posts, user.location, f'POINT({user.coords[1]} {user.coords[0]})', user.id))
+    cursor.execute(sql_update_user, (
+        user.name, user.surname, user.posts, user.location, f'POINT({user.coords[1]} {user.coords[0]})', user.id))
     db_params.commit()
     cursor.close()
 
@@ -164,6 +222,8 @@ def update_user(i):
     entry_liczba_postow.delete(0, END)
     entry_lokalizacja.delete(0, END)
     entry_imie.focus()
+
+
 # GUI
 root = Tk()
 root.title("MapApp")
