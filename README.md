@@ -4,7 +4,7 @@ MapApp is a simple Tkinter-based application that allows users to manage and vis
 
 
 ### Development 
-Each of following branch represents stage of App evolution:
+Each of following branch represents a stage of App evolution:
 - Terminal version: https://github.com/gitgeoman/mapbook/tree/feat/crud_app_and_terminal_menu
 - Tkinter gui with list as data source: https://github.com/gitgeoman/mapbook/tree/feat/tk_gui_map
 - Tkinter gui with postgis management functions: https://github.com/gitgeoman/mapbook/tree/feat/db_management
