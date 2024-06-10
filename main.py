@@ -1,5 +1,6 @@
 from model.data import users
 from utils.controller.crud import read_user, add_user, search_user, remove_user, update_user
+from utils.controller.map import single_map, full_map
 
 
 def main() -> None:
@@ -11,6 +12,8 @@ def main() -> None:
         print("3. Search user")
         print("4. Remove user")
         print("5. Update user")
+        print("6. Generate single map")
+        print("7. Generate full map")
         menu_option = input("Choose an option:")
         if menu_option == "0":
             break
