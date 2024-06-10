@@ -76,7 +76,7 @@ def full_map(users: str) -> None:
     """
 
     coords: list = []
-    map = folium.Map(location=[52, 21], zoom_start=8)
+    my_map = folium.Map(location=[52, 21], zoom_start=8)
     for user in users:
         url: str = f"https://pl.wikipedia.org/wiki/{user['location']}"
         response = requests.get(url)
@@ -85,6 +85,6 @@ def full_map(users: str) -> None:
         longitude: str = response_html.select('.longitude')[1].text.replace(",", ".")
         coords.append([latitude, longitude])
         for pair_of_coords in coords:
-            folium.Marker(location=pair_of_coords).add_to(map)
+            folium.Marker(location=pair_of_coords).add_to(my_map)
 
-        map.save(f'./common_map.html')
+        my_map.save(f'./common_map.html')
