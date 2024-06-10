@@ -1,0 +1,37 @@
+#-----------------------------------------------------------------------------
+# Compose file for running db locally
+#-----------------------------------------------------------------------------
+version: "3.9"
+
+x-environment: &env-all
+  #DB
+  - &env-postgres-db POSTGRES_DB=${POSTGRES_DB:?}
+  - &env-postgres-user POSTGRES_USER=${POSTGRES_USER:?}
+  - &env-postgres-password POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?}
+  - &env-postgres-port POSTGRES_PORT=${POSTGRES_PORT:?}
+
+#-----------------------------------------------------------------------------
+# Services
+#-----------------------------------------------------------------------------
+services:
+  #---------------------------------------------------------------------------
+  # DB
+  #---------------------------------------------------------------------------
+  postgis:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: "postgis"
+    environment:
+      - *env-postgres-db
+      - *env-postgres-user
+      - *env-postgres-password
+      - *env-postgres-port
+    ports:
+      - 65432:5432
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+#-----------------------------------------------------------------------------
+# Volumes
+#-----------------------------------------------------------------------------
+volumes:
+  postgres-data:
