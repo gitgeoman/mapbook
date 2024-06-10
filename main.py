@@ -1,48 +1,36 @@
 from tkinter import *
-
 import requests
 import tkintermapview
 from bs4 import BeautifulSoup
+import psycopg2 as ps
 
-# instrukcja sterująca
+# Database connection parameters
+db_params = ps.connect(
+    database="postgres",
+    user="postgres",
+    password="postgres",
+    host="localhost",
+    port="65432"
+)
 
 users = []
 
 
 class User:
-    """
-    Represents a user with a name, surname, number of posts, and location.
-
-    Attributes:
-        name (str): The user's first name.
-        surname (str): The user's surname.
-        posts (str): The number of posts published by the user.
-        location (str): The user's location.
-        coords (list): The geographical coordinates (latitude and longitude) of the user's location.
-        marker (Marker): A marker on the map representing the user's location.
-    """
-
     def __init__(self, name, surname, posts, location):
-        self.name: str = name
-        self.surname: str = surname
-        self.posts: str = posts
-        self.location: str = location
-        self.coords: list = User.get_coordinates(self)
-
+        self.name = name
+        self.surname = surname
+        self.posts = posts
+        self.location = location
+        self.coords = self.get_coordinates()
         self.marker = map_widget.set_marker(
             self.coords[0],
             self.coords[1],
             text=f"{self.name}"
         )
 
-    def get_coordinates(self) -> list:
-        """
-        Retrieves the geographical coordinates for the user's location.
-
-        Returns:
-            list: A list containing the latitude and longitude of the user's location.
-        """
-        url: str = f'https://pl.wikipedia.org/wiki/{self.location}'
+    def get_coordinates(self):
+        url = f'https://pl.wikipedia.org/wiki/{self.location}'
         response = requests.get(url)
         response_html = BeautifulSoup(response.text, 'html.parser')
         return [
@@ -51,24 +39,37 @@ class User:
         ]
 
 
-def show_users() -> None:
-    """
-    Displays the list of users in the Listbox widget.
-    """
+def show_users():
+    cursor = db_params.cursor()
+    sql_show_users = "SELECT id, name, surname, posts, location, ST_AsText(coords) FROM public.users"
+    cursor.execute(sql_show_users)
+    users_db = cursor.fetchall()
+    cursor.close()
+
+    users.clear()
     listbox_lista_obiektow.delete(0, END)
-    for idx, user in enumerate(users):
-        listbox_lista_obiektow.insert(idx, f'{user.name} {user.surname} {user.posts} {user.location}')
+    for idx, user in enumerate(users_db):
+        user_obj = User(user[1], user[2], user[3], user[4])
+        users.append(user_obj)
+        listbox_lista_obiektow.insert(idx, f'{user[1]} {user[2]} {user[3]} {user[4]}')
 
 
-def add_user() -> None:
-    """
-    Adds a new user to the users list based on input from Entry widgets.
-    """
+def add_user():
     name = entry_imie.get()
     surname = entry_nazwisko.get()
     posts = entry_liczba_postow.get()
     location = entry_lokalizacja.get()
-    users.append(User(name, surname, posts, location))
+    user = User(name, surname, posts, location)
+    users.append(user)
+
+    cursor = db_params.cursor()
+    sql_insert_user = f"""
+    INSERT INTO public.users (name, surname, posts, location, coords) 
+    VALUES ('{name}', '{surname}', '{posts}', '{location}', 'POINT({user.coords[1]} {user.coords[0]})')
+    """
+    cursor.execute(sql_insert_user)
+    db_params.commit()
+    cursor.close()
 
     show_users()
 
@@ -76,62 +77,66 @@ def add_user() -> None:
     entry_nazwisko.delete(0, END)
     entry_liczba_postow.delete(0, END)
     entry_lokalizacja.delete(0, END)
-
     entry_imie.focus()
 
 
-def remove_user() -> None:
-    """
-    Removes the selected user from the users list and deletes their marker from the map.
-    """
+def remove_user():
     i = listbox_lista_obiektow.index(ACTIVE)
-    users[i].marker.delete()
+    user = users[i]
+
+    cursor = db_params.cursor()
+    sql_delete_user = f"DELETE FROM public.users WHERE name = '{user.name}' AND surname = '{user.surname}'"
+    cursor.execute(sql_delete_user)
+    db_params.commit()
+    cursor.close()
+
+    user.marker.delete()
     users.pop(i)
     show_users()
 
 
-def show_user_details() -> None:
-    """
-    Displays the details of the selected user and sets the map position to their coordinates.
-    """
+def show_user_details():
     i = listbox_lista_obiektow.index(ACTIVE)
-    imie = users[i].name
-    label_imie_szczegoly_obiektu_wartosc.config(text=imie)
-    nazwisko = users[i].surname
-    label_nazwisko_szczegoly_obiektu_wartosc.config(text=nazwisko)
-    posty = users[i].posts
-    label_liczba_postow_szczegoly_obiektu_wartosc.config(text=posty)
-    lokalizacja = users[i].location
-    label_lokalizacja_szczegoly_obiektu_wartosc.config(text=lokalizacja)
-    map_widget.set_position(users[i].wspolrzedne[0], users[i].wspolrzedne[1])
+    user = users[i]
+    label_imie_szczegoly_obiektu_wartosc.config(text=user.name)
+    label_nazwisko_szczegoly_obiektu_wartosc.config(text=user.surname)
+    label_liczba_postow_szczegoly_obiektu_wartosc.config(text=user.posts)
+    label_lokalizacja_szczegoly_obiektu_wartosc.config(text=user.location)
+    map_widget.set_position(user.coords[0], user.coords[1])
     map_widget.set_zoom(12)
 
 
-def edit_user_data() -> None:
-    """
-    Updates the user data and marker on the map with the values from the Entry widgets.
-
-    Args:
-        i (int): The index of the user to be updated in the users list.
-    """
+def edit_user_data():
     i = listbox_lista_obiektow.index(ACTIVE)
-    entry_imie.insert(0, users[i].name)
-    entry_nazwisko.insert(0, users[i].surname)
-    entry_liczba_postow.insert(0, users[i].posts)
-    entry_lokalizacja.insert(0, users[i].location)
+    user = users[i]
+    entry_imie.insert(0, user.name)
+    entry_nazwisko.insert(0, user.surname)
+    entry_liczba_postow.insert(0, user.posts)
+    entry_lokalizacja.insert(0, user.location)
 
     button_dodaj_uzytkownika.config(text="Zapisz zmiany", command=lambda: update_user(i))
 
 
-def update_user(i) -> None:
-    users[i].name = entry_imie.get()
-    users[i].surname = entry_nazwisko.get()
-    users[i].posts = entry_liczba_postow.get()
-    users[i].location = entry_lokalizacja.get()
-    users[i].wspolrzedne = User.get_coordinates(users[i])
-    users[i].marker.delete()
-    users[i].marker = map_widget.set_marker(users[i].wspolrzedne[0], users[i].wspolrzedne[1],
-                                            text=f"{users[i].name}")
+def update_user(i):
+    user = users[i]
+    user.name = entry_imie.get()
+    user.surname = entry_nazwisko.get()
+    user.posts = entry_liczba_postow.get()
+    user.location = entry_lokalizacja.get()
+    user.coords = user.get_coordinates()
+    user.marker.delete()
+    user.marker = map_widget.set_marker(user.coords[0], user.coords[1], text=f"{user.name}")
+
+    cursor = db_params.cursor()
+    sql_update_user = f"""
+    UPDATE public.users 
+    SET name = '{user.name}', surname = '{user.surname}', posts = '{user.posts}', location = '{user.location}', coords = 'POINT({user.coords[1]} {user.coords[0]})' 
+    WHERE name = '{user.name}' AND surname = '{user.surname}'
+    """
+    cursor.execute(sql_update_user)
+    db_params.commit()
+    cursor.close()
+
     show_users()
     button_dodaj_uzytkownika.config(text="Dodaj użytkownika", command=add_user)
     entry_imie.delete(0, END)
