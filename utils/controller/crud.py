@@ -108,6 +108,7 @@ def search_user(users: list) -> dict:
     name: str = input("Who do you look for (name): ")
     for user in users:
         if user["name"] == name:
+            print(user)
             return user
 
 
