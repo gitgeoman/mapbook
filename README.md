@@ -31,20 +31,15 @@ MapApp is a simple Tkinter-based application that allows users to manage and vis
 
 ## Installation
 
-1. Clone the repository:
 
-    ```sh
-    git clone https://github.com/yourusername/MapApp.git
-    cd MapApp
-    ```
 
-2. Install the required Python packages:
+1. Install the required Python packages:
 
     ```sh
     pip install -r requirements.txt
     ```
 
-3. Set up the PostgreSQL database:
+2. Set up the PostgreSQL database:
 
     ```sql
     CREATE DATABASE mapapp;
@@ -59,7 +54,7 @@ MapApp is a simple Tkinter-based application that allows users to manage and vis
     );
     ```
 
-4. Update the database connection parameters in the script:
+3. Update the database connection parameters in the script:
 
     ```python
     db_params = connection.connect(
